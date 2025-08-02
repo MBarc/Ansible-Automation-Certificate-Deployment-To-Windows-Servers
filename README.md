@@ -1,10 +1,10 @@
 <div align="center">
   <img src="https://github.com/ansible/logos/raw/main/community-marks/Ansible-Community-Mark-Mango.png" alt="Ansible Logo" width="200">
+  
+  # Ansible Certificate Deployment
+  
+  **Automated deployment of PFX certificates from Azure Key Vault to Windows servers using Ansible.**
 </div>
-
-# Ansible Certificate Deployment
-
-**Automated deployment of PFX certificates from Azure Key Vault to Windows servers using Ansible.**
 
 ## 🎯 What This Does
 
