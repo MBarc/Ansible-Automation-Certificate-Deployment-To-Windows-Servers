@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://github.com/ansible/logos/raw/main/vscode-ansible-logo.png" alt="Ansible Logo" width="120" height="120" style="border-radius: 50%;">
+</div>
+
 # Ansible Certificate Deployment
 
 **Automated deployment of PFX certificates from Azure Key Vault to Windows servers using Ansible.**
