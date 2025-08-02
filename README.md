@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/ansible/logos/raw/main/community-usage/correct-use-mango.png" alt="Ansible Logo" width="120" height="120" style="border-radius: 50%;">
+  <img src="https://github.com/ansible/logos/raw/main/community-usage/correct-use-mango.png" alt="Ansible Logo" width="200" style="border-radius: 50%; object-fit: cover; aspect-ratio: 1;">
 </div>
 
 # Ansible Certificate Deployment
