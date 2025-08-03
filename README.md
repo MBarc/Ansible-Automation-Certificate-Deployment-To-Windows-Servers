@@ -6,6 +6,27 @@
   **Automated deployment of PFX certificates from Azure Key Vault to Windows servers using Ansible.**
 </div>
 
+## 📋 Table of Contents
+
+- [What This Does](#-what-this-does)
+- [Key Features](#-key-features)
+- [Architecture](#️-architecture)
+- [Process Flow](#-process-flow)
+- [Quick Start](#-quick-start)
+  - [Prerequisites](#1-prerequisites)
+  - [Setup Azure](#2-setup-azure)
+  - [Configure Repository](#3-configure-repository)
+  - [Run the Playbook](#4-run-the-playbook)
+- [Repository Structure](#-repository-structure)
+- [Configuration Options](#️-configuration-options)
+- [Security Features](#-security-features)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [Requirements](#-requirements)
+- [Documentation](#-documentation)
+- [License](#-license)
+- [Acknowledgments](#-acknowledgments)
+
 ## 🎯 What This Does
 
 - Downloads certificates from Azure Key Vault
