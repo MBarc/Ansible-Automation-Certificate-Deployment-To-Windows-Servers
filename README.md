@@ -82,12 +82,14 @@ flowchart TD
     L -->|Yes| H
     L -->|No| FF[🎉 All servers processed - Playbook completed]
     
-    classDef successClass fill:#d4edda,stroke:#28a745,stroke-width:2px
-    classDef errorClass fill:#f8d7da,stroke:#dc3545,stroke-width:2px
-    classDef warningClass fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    classDef processClass fill:#e2e3e5,stroke:#6c757d,stroke-width:2px
-    classDef inputClass fill:#cce5ff,stroke:#007bff,stroke-width:2px
-    classDef loopClass fill:#e7f3ff,stroke:#0066cc,stroke-width:3px
+    %% High contrast color scheme
+    classDef successClass fill:#2d5a27,stroke:#4caf50,stroke-width:3px,color:#ffffff
+    classDef errorClass fill:#c62828,stroke:#f44336,stroke-width:3px,color:#ffffff
+    classDef warningClass fill:#f57c00,stroke:#ff9800,stroke-width:3px,color:#000000
+    classDef processClass fill:#1565c0,stroke:#2196f3,stroke-width:2px,color:#ffffff
+    classDef inputClass fill:#4527a0,stroke:#673ab7,stroke-width:3px,color:#ffffff
+    classDef loopClass fill:#00695c,stroke:#009688,stroke-width:4px,color:#ffffff
+    classDef decisionClass fill:#37474f,stroke:#607d8b,stroke-width:3px,color:#ffffff
     
     class FF successClass
     class K,O,R,U,X,AA errorClass
@@ -95,6 +97,7 @@ flowchart TD
     class A,B,C,I,M,P,S,V,Y,BB,EE processClass
     class D,E,F,G inputClass
     class H,L loopClass
+    class J,N,Q,T,W,Z,CC decisionClass
 ```
 
 ## 🚀 Quick Start
@@ -291,3 +294,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Ansible community for excellent Windows modules
 - Azure team for Key Vault integration
 - Contributors and users of this project
+
+## 📧 Support
+
+- Create an [Issue](../../issues) for bug reports
+- Start a [Discussion](../../discussions) for questions
+- Check [existing issues](../../issues?q=is%3Aissue) before creating new ones
+
+---
+
+**⭐ If this project helped you, please give it a star!**
