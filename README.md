@@ -96,12 +96,21 @@ flowchart TD
     
     BB --> CC{Cleanup Successful?}
     CC -->|No| DD[⚠️ Warning: Temp file not deleted]
-    DD --> L
-    CC -->|Yes| EE[✅ Task completed successfully for this server]
+    DD --> EE{Restart enabled and cert installed?}
+    CC -->|Yes| EE{Restart enabled and cert installed?}
     
-    EE --> L
+    EE -->|No| FF[✅ Task completed successfully for this server]
+    EE -->|Yes| GG[🔄 Task 6: Restart Windows server]
+    
+    GG --> HH{Server restarted successfully?}
+    HH -->|No| II[❌ Server restart failed]
+    HH -->|Yes| JJ[✅ Server restarted and back online]
+    
+    FF --> L
+    II --> L
+    JJ --> L
     L -->|Yes| H
-    L -->|No| FF[🎉 All servers processed - Playbook completed]
+    L -->|No| KK[🎉 All servers processed - Playbook completed]
     
     %% High contrast color scheme
     classDef successClass fill:#2d5a27,stroke:#4caf50,stroke-width:3px,color:#ffffff
@@ -111,14 +120,16 @@ flowchart TD
     classDef inputClass fill:#4527a0,stroke:#673ab7,stroke-width:3px,color:#ffffff
     classDef loopClass fill:#00695c,stroke:#009688,stroke-width:4px,color:#ffffff
     classDef decisionClass fill:#37474f,stroke:#607d8b,stroke-width:3px,color:#ffffff
+    classDef restartClass fill:#d84315,stroke:#ff5722,stroke-width:3px,color:#ffffff
     
-    class FF successClass
-    class K,O,R,U,X,AA errorClass
+    class KK successClass
+    class K,O,R,U,X,AA,II errorClass
     class DD warningClass
-    class A,B,C,I,M,P,S,V,Y,BB,EE processClass
+    class A,B,C,I,M,P,S,V,Y,BB,FF,JJ processClass
     class D,E,F,G inputClass
     class H,L loopClass
-    class J,N,Q,T,W,Z,CC decisionClass
+    class J,N,Q,T,W,Z,CC,EE,HH decisionClass
+    class GG restartClass
 ```
 
 ## 🚀 Quick Start
@@ -178,6 +189,8 @@ key_vault_name: "your-keyvault-name"
 certificate_name: "your-certificate-name"
 cert_store_name: "My"
 cert_store_location: "LocalMachine"
+restart_after_install: false
+restart_timeout: 600
 temp_cert_path: "C:\\temp\\certificate.pfx"
 ```
 
@@ -207,7 +220,6 @@ ansible-certificate-deployment/
 ├── inventory.ini                  # Server inventory (create this)
 ├── group_vars/
 │   └── windows_servers.yml       # Group variables (create this)
-├── host_vars/                     # Host-specific variables (optional)
 ├── docs/
 │   ├── troubleshooting.md        # Common issues and solutions
 │   └── security-considerations.md # Security best practices
@@ -235,6 +247,8 @@ key_vault_name: "prod-certificates"           # Your Key Vault name
 certificate_name: "wildcard-ssl-cert"         # Certificate name in Key Vault
 cert_store_name: "My"                         # Certificate store
 cert_store_location: "LocalMachine"           # Store location
+restart_after_install: false                  # Restart after installation
+restart_timeout: 600                          # Restart timeout in seconds
 temp_cert_path: "C:\\temp\\certificate.pfx"   # Temporary file path
 ```
 
