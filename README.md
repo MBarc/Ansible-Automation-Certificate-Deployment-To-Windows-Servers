@@ -59,58 +59,59 @@ flowchart TD
     C --> D[🔐 Prompt for Azure Client ID]
     D --> E[🔐 Prompt for Azure Secret - Hidden Input]
     E --> F[🔐 Prompt for Azure Tenant ID]
-    F --> G[🔐 Prompt for Certificate Password - Hidden Input]
+    F --> G[🔐 Prompt for Azure Subscription ID]
+    G --> H[🔐 Prompt for Certificate Password - Hidden Input]
     
-    G --> H[🔄 Begin loop: For each server in windows_servers group]
-    H --> I[Connect to current Windows server via WinRM]
+    H --> I[🔄 Begin loop: For each server in windows_servers group]
+    I --> J[Connect to current Windows server via WinRM]
     
-    I --> J{WinRM Connection Successful?}
-    J -->|No| K[❌ Connection Failed - Check WinRM/Credentials]
-    K --> L{More servers to process?}
-    J -->|Yes| M[📁 Task 1: Create C:\temp directory on Windows]
+    J --> K{WinRM Connection Successful?}
+    K -->|No| L[❌ Connection Failed - Check WinRM/Credentials]
+    L --> M{More servers to process?}
+    K -->|Yes| N[📁 Task 1: Create C:\temp directory on Windows]
     
-    M --> N{Directory Created?}
-    N -->|No| O[❌ Failed to create directory]
-    O --> L
-    N -->|Yes| P[☁️ Task 2: Connect to Azure Key Vault from CentOS]
+    N --> O{Directory Created?}
+    O -->|No| P[❌ Failed to create directory]
+    P --> M
+    O -->|Yes| Q[☁️ Task 2: Connect to Azure Key Vault from CentOS]
     
-    P --> Q{Azure Authentication Successful?}
-    Q -->|No| R[❌ Azure auth failed - Check credentials]
-    R --> L
-    Q -->|Yes| S[📥 Download certificate from Key Vault]
+    Q --> R{Azure Authentication Successful?}
+    R -->|No| S[❌ Azure auth failed - Check credentials]
+    S --> M
+    R -->|Yes| T[📥 Download certificate from Key Vault]
     
-    S --> T{Certificate Downloaded?}
-    T -->|No| U[❌ Certificate not found or access denied]
-    U --> L
-    T -->|Yes| V[📤 Task 3: Transfer certificate to Windows server]
+    T --> U{Certificate Downloaded?}
+    U -->|No| V[❌ Certificate not found or access denied]
+    V --> M
+    U -->|Yes| W[📤 Task 3: Transfer certificate to Windows server]
     
-    V --> W{File Transfer Successful?}
-    W -->|No| X[❌ File transfer failed]
-    X --> L
-    W -->|Yes| Y[🔧 Task 4: Install certificate in Windows cert store]
+    W --> X{File Transfer Successful?}
+    X -->|No| Y[❌ File transfer failed]
+    Y --> M
+    X -->|Yes| Z[🔧 Task 4: Install certificate in Windows cert store]
     
-    Y --> Z{Certificate Installation Successful?}
-    Z -->|No| AA[❌ Installation failed - Check password/format]
-    AA --> L
-    Z -->|Yes| BB[🗑️ Task 5: Delete temporary certificate file]
+    Z --> AA{Certificate Installation Successful?}
+    AA -->|No| BB[❌ Installation failed - Check password/format]
+    BB --> M
+    AA -->|Yes| CC[🗑️ Task 5: Delete temporary certificate file]
     
-    BB --> CC{Cleanup Successful?}
-    CC -->|No| DD[⚠️ Warning: Temp file not deleted]
-    DD --> EE{Restart enabled and cert installed?}
-    CC -->|Yes| EE{Restart enabled and cert installed?}
+    CC --> DD{Cleanup Successful?}
+    DD -->|No| EE[⚠️ Warning: Temp file not deleted]
+    EE --> FF{Restart enabled and cert installed?}
+    DD -->|Yes| FF{Restart enabled and cert installed?}
     
-    EE -->|No| FF[✅ Task completed successfully for this server]
-    EE -->|Yes| GG[🔄 Task 6: Restart Windows server]
+    FF -->|No| GG[✅ Task completed successfully for this server]
+    FF -->|Yes| HH[🔄 Task 6: Restart Windows server]
     
-    GG --> HH{Server restarted successfully?}
-    HH -->|No| II[❌ Server restart failed]
-    HH -->|Yes| JJ[✅ Server restarted and back online]
+    HH --> II{Server restarted successfully?}
+    II -->|No| JJ[❌ Server restart failed]
+    II -->|Yes| KK[✅ Server restarted and back online]
     
-    FF --> L
-    II --> L
-    JJ --> L
-    L -->|Yes| H
-    L -->|No| KK[🎉 All servers processed - Playbook completed]
+    GG --> M
+    JJ --> M
+    KK --> M
+    M -->|Yes| I
+    M -->|No| LL[🎉 All servers processed - Playbook completed]
     
     %% High contrast color scheme
     classDef successClass fill:#2d5a27,stroke:#4caf50,stroke-width:3px,color:#ffffff
@@ -122,14 +123,14 @@ flowchart TD
     classDef decisionClass fill:#37474f,stroke:#607d8b,stroke-width:3px,color:#ffffff
     classDef restartClass fill:#d84315,stroke:#ff5722,stroke-width:3px,color:#ffffff
     
-    class KK successClass
-    class K,O,R,U,X,AA,II errorClass
-    class DD warningClass
-    class A,B,C,I,M,P,S,V,Y,BB,FF,JJ processClass
-    class D,E,F,G inputClass
-    class H,L loopClass
-    class J,N,Q,T,W,Z,CC,EE,HH decisionClass
-    class GG restartClass
+    class LL successClass
+    class L,P,S,V,Y,BB,JJ errorClass
+    class EE warningClass
+    class A,B,C,J,N,Q,T,W,Z,CC,GG,KK processClass
+    class D,E,F,G,H inputClass
+    class I,M loopClass
+    class K,O,R,U,X,AA,DD,FF,II decisionClass
+    class HH restartClass
 ```
 
 ## 🚀 Quick Start
@@ -159,7 +160,7 @@ winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
 
 - Create an App Registration in Azure AD
 - Grant Key Vault access permissions
-- Note: Client ID, Client Secret, and Tenant ID
+- Note: Client ID, Client Secret, Tenant ID, Subscription ID, and Resource Group
 
 ### 3. Configure Repository
 
@@ -187,6 +188,8 @@ ansible_winrm_server_cert_validation=ignore
 # group_vars/windows_servers.yml
 key_vault_name: "your-keyvault-name"
 certificate_name: "your-certificate-name"
+azure_resource_group: "your-resource-group"
+azure_subscription_id: "your-subscription-id"
 cert_store_name: "My"
 cert_store_location: "LocalMachine"
 restart_after_install: false
@@ -208,6 +211,7 @@ ansible-playbook -i inventory.ini deploy-certificate.yml
 - Azure Client ID
 - Azure Client Secret (hidden)
 - Azure Tenant ID
+- Azure Subscription ID
 - Certificate Password (hidden)
 
 ## 📁 Repository Structure
@@ -245,6 +249,8 @@ ansible-certificate-deployment/
 # group_vars/windows_servers.yml
 key_vault_name: "prod-certificates"           # Your Key Vault name
 certificate_name: "wildcard-ssl-cert"         # Certificate name in Key Vault
+azure_resource_group: "rg-certificates"       # Resource group containing Key Vault
+azure_subscription_id: "12345678-1234-1234-1234-123456789012"  # Azure subscription ID
 cert_store_name: "My"                         # Certificate store
 cert_store_location: "LocalMachine"           # Store location
 restart_after_install: false                  # Restart after installation
