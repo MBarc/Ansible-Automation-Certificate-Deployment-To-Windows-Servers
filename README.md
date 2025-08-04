@@ -201,21 +201,6 @@ Restart-Service WinRM
   - **Key Vault level**: `Key Vault Secrets User` role
 - Note: Client ID, Client Secret, Tenant ID, and Subscription ID
 
-**Grant permissions using Azure CLI:**
-```bash
-# Assign Reader role at subscription level
-az role assignment create \
-    --assignee "your-client-id" \
-    --role "Reader" \
-    --scope "/subscriptions/your-subscription-id"
-
-# Assign Key Vault access
-az role assignment create \
-    --assignee "your-client-id" \
-    --role "Key Vault Secrets User" \
-    --scope "/subscriptions/your-subscription-id/resourceGroups/your-rg/providers/Microsoft.KeyVault/vaults/your-keyvault"
-```
-
 ### 3. Configure Repository
 
 **Clone and setup:**
@@ -226,30 +211,97 @@ cd ansible-certificate-deployment
 
 **Create inventory file:**
 ```ini
-# inventory.ini
+# example inventory.ini
 [windows_servers]
-web-server-01 ansible_host=192.168.1.100 ansible_user=Administrator ansible_password=YourPassword
-web-server-02 ansible_host=192.168.1.101 ansible_user=Administrator ansible_password=YourPassword
-
-[windows_servers:vars]
-ansible_connection=winrm
-ansible_winrm_transport=basic
-ansible_winrm_server_cert_validation=ignore
+192.168.0.1 # Put the IPs of your Windows servers 
+192.168.0.2
+192.168.0.3
 ```
-
-**Configure group variables:**
+**Configure main file for playbook variables:**
 ```yaml
-# group_vars/windows_servers.yml
-key_vault_name: "your-keyvault-name"
-certificate_name: "your-certificate-name"
-azure_resource_group: "your-resource-group"
-azure_subscription_id: "your-subscription-id"
+# Main configuration file for Windows servers
+# This file includes all vault files and sets up variables
+
+# Windows Connection Settings (using vaulted credentials)
+ansible_user: "{{ vault_windows_user }}"
+ansible_password: "{{ vault_windows_password }}"
+ansible_connection: winrm
+ansible_winrm_scheme: http
+ansible_winrm_transport: basic
+ansible_winrm_server_cert_validation: ignore
+ansible_port: 5985
+
+# Azure Key Vault settings (using vaulted credentials)
+azure_client_id: "{{ vault_azure_client_id }}"
+azure_secret: "{{ vault_azure_secret }}"
+azure_tenant: "{{ vault_azure_tenant }}"
+azure_subscription: "{{ vault_azure_subscription }}"
+
+# Certificate password (using vaulted password)
+certificate_password: "{{ vault_certificate_password }}"
+
+# Azure Key Vault configuration (non-sensitive)
+key_vault_name: "YourActualKeyVaultName"
+certificate_name: "YourActualCertificateName"
+
+# Windows certificate settings (non-sensitive)
 cert_store_name: "My"
 cert_store_location: "LocalMachine"
+
+# Server management settings (non-sensitive)
 restart_after_install: false
 restart_timeout: 600
+
+# Temporary paths (non-sensitive)
 temp_cert_path: "C:\\temp\\certificate.pfx"
 ```
+
+**Configure Vault file for server variables:**
+```yaml
+# group_vars/windows_servers/vault_windows.yml
+vault_windows_user: Administrator
+vault_windows_password: YourActualWindowsPassword
+```
+
+**Configure Vault file for azure variables:**
+```yaml
+# group_vars/windows_servers/vault_azure.yml
+vault_azure_client_id:
+vault_azure_secret:
+vault_azure_tenant:
+vault_azure_subscription:
+```
+
+**Configure Vault file for certificate variables:**
+```yaml
+# group_vars/windows_servers/windows_servers.yml
+vault_certificate_password: # leave blank if no password
+```
+
+**Confgure the Password file for your Vaults
+```
+# ./.vault_pass
+YourActualVaultPassword
+```
+Then run:
+```bash
+chmod 600 .vault_pass
+```
+
+#### Encrypt Your Vault Files
+For each variable file, that contains "vault" in the name, run this command to encrypt it.
+```bash
+ansible-vault encrypt path/to/vault/file/vault_example.yml
+```
+When you are prompted for the password, put in the same password you put in your .vault_pass file.
+Try reading the vault file, you should see it encrypted in AES256.
+
+#### Confirm Vault Content Is Still Valid
+```bash
+ansible-vault view /path/to/vault/file/vault_example.yml --vault-password-file .vault_pass
+```
+You should see the content of the vault file before you encrypted them.
+
 
 ### 6. Run the Playbook
 
@@ -258,19 +310,13 @@ temp_cert_path: "C:\\temp\\certificate.pfx"
 ansible windows_servers -i inventory.ini -m win_ping --vault-password-file .vault_pass
 
 # Deploy certificates using password file
-ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass
-
-# Or use interactive password prompt
-ansible-playbook -i inventory.ini deploy-certificate.yml --ask-vault-pass
+ansible-playbook -i inventory.ini certificate-deployment-windows.yml --vault-password-file .vault_pass
 ```
 
 **Override restart behavior:**
 ```bash
 # Enable restart for this deployment only
 ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -e "restart_after_install=true"
-
-# Use different certificate
-ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -e "certificate_name=prod-cert"
 ```
 
 ## 📁 Repository Structure
@@ -278,93 +324,28 @@ ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .
 ## 📁 Repository Structure
 
 ```
-ansible-certificate-deployment/
+certificate-deployment-windows/
 ├── README.md                           # This file
 ├── LICENSE                             # MIT License
-├── deploy-certificate.yml              # Main playbook
+├── certificate-deployment-windows.yml              # Main playbook
 ├── inventory.ini                       # Server inventory (no credentials)
 ├── .vault_pass                         # Vault password file (gitignored)
 ├── .gitignore                          # Excludes sensitive files
 ├── group_vars/
-│   └── windows_servers/
-│       ├── main.yml                    # Main configuration (references vault vars)
-│       ├── vault_windows.yml           # Windows credentials (encrypted)
-│       ├── vault_azure.yml             # Azure credentials (encrypted)
-│       └── vault_certificates.yml      # Certificate passwords (encrypted)
-├── docs/
-│   ├── troubleshooting.md             # Common issues and solutions
-│   └── security-considerations.md      # Security best practices
-└── examples/
-    ├── inventory.ini.example          # Example inventory file
-    └── group_vars.yml.example         # Example group variables
+   └── windows_servers/
+       ├── main.yml                    # Main configuration (references vault vars)
+       ├── vault_windows.yml           # Windows credentials (encrypted)
+       ├── vault_azure.yml             # Azure credentials (encrypted)
+       └── vault_certificates.yml      # Certificate passwords (encrypted)
 ```
 
 ## ⚙️ Configuration Options
 
-### Certificate Store Locations
 
-| Store Name | Description | Location |
-|------------|-------------|----------|
-| `My` | Personal certificates | Current User or Local Machine |
-| `Root` | Trusted Root CAs | Local Machine |
-| `CA` | Intermediate CAs | Local Machine |
-| `Trust` | Enterprise Trust | Local Machine |
-
-### Common Variables
-
-```yaml
-## ⚙️ Configuration Options
-
-### Vault Management
-
-**View encrypted vault contents:**
-```bash
-ansible-vault view group_vars/windows_servers/vault_windows.yml --vault-password-file .vault_pass
-```
-
-**Edit encrypted vault files:**
-```bash
-ansible-vault edit group_vars/windows_servers/vault_azure.yml --vault-password-file .vault_pass
-```
-
-**Encrypt existing plain text files:**
-```bash
-ansible-vault encrypt group_vars/windows_servers/plain_file.yml
-```
-
-**Change vault password:**
-```bash
-ansible-vault rekey group_vars/windows_servers/vault_*.yml
-```
-
-### Certificate Store Locations
-
-| Store Name | Description | Location |
-|------------|-------------|----------|
-| `My` | Personal certificates | Current User or Local Machine |
-| `Root` | Trusted Root CAs | Local Machine |
-| `CA` | Intermediate CAs | Local Machine |
-| `Trust` | Enterprise Trust | Local Machine |
 
 ### Configuration Variables
 
-**Main configuration variables (non-sensitive):**
-```yaml
-# group_vars/windows_servers/main.yml
-key_vault_name: "prod-certificates"           # Your Key Vault name
-certificate_name: "wildcard-ssl-cert"         # Certificate name in Key Vault
-cert_store_name: "My"                         # Certificate store
-cert_store_location: "LocalMachine"           # Store location
-restart_after_install: false                  # Restart after installation
-restart_timeout: 600                          # Restart timeout in seconds
-temp_cert_path: "C:\\temp\\certificate.pfx"   # Temporary file path
-```
 
-**Vaulted credentials (encrypted):**
-- `vault_windows_user` and `vault_windows_password` (Windows authentication)
-- `vault_azure_client_id`, `vault_azure_secret`, `vault_azure_tenant`, `vault_azure_subscription` (Azure authentication)
-- `vault_certificate_password` (Certificate decryption)
-```
 
 ## 🔒 Security Features
 
