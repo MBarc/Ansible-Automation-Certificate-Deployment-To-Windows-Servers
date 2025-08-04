@@ -163,10 +163,33 @@ az --version
 **On Windows Target Servers:**
 ```powershell
 # Run as Administrator
-winrm quickconfig -y
+
+# Enables PowerShell remoting (required for WinRM)
+Enable-PSRemoting
+
+# Allows Basic authentication for the WinRM service
 winrm set winrm/config/service/auth '@{Basic="true"}'
+
+# Allows unencrypted communication (use only in trusted networks)
 winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+
+# Increases the maximum memory per remote PowerShell session to 1 GB
 winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
+
+# Allows unencrypted communication from the client side
+winrm set winrm/config/client '@{AllowUnencrypted="true"}'
+
+# Allows Basic authentication for the WinRM client
+winrm set winrm/config/client/auth '@{Basic="true"}'
+
+# Adds all remote systems (*) to the list of trusted hosts
+winrm set winrm/config/client '@{TrustedHosts="*"}'
+
+# Enables the firewall rule for WinRM over HTTP
+Enable-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)"
+
+# Restarts the WinRM service to apply changes
+Restart-Service WinRM
 ```
 
 ### 2. Setup Azure
