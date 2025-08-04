@@ -321,8 +321,6 @@ ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .
 
 ## 📁 Repository Structure
 
-## 📁 Repository Structure
-
 ```
 certificate-deployment-windows/
 ├── README.md                           # This file
@@ -338,14 +336,6 @@ certificate-deployment-windows/
        ├── vault_azure.yml             # Azure credentials (encrypted)
        └── vault_certificates.yml      # Certificate passwords (encrypted)
 ```
-
-## ⚙️ Configuration Options
-
-
-
-### Configuration Variables
-
-
 
 ## 🔒 Security Features
 
@@ -429,14 +419,6 @@ ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .
 ansible-inventory -i inventory.ini --list --vault-password-file .vault_pass
 ```
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## 📋 Requirements
 
 ### Control Node (CentOS)
@@ -457,13 +439,6 @@ ansible-inventory -i inventory.ini --list --vault-password-file .vault_pass
   - **Subscription level**: Reader role
   - **Key Vault level**: Key Vault Secrets User role
 - Valid Azure subscription
-
-## 📖 Documentation
-
-- [Troubleshooting Guide](docs/troubleshooting.md)
-- [Security Considerations](docs/security-considerations.md)
-- [WinRM Configuration Guide](docs/winrm-setup.md)
-- [Azure Service Principal Setup](docs/azure-setup.md)
 
 ## 📄 License
 
