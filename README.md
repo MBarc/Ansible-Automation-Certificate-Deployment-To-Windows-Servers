@@ -294,8 +294,8 @@ vault_azure_subscription:
 vault_certificate_password: # leave blank if no password
 ```
 
-**Confgure the Password file for your Vaults
-```
+**Confgure the Password file for your Vaults:**
+```bash
 # ./.vault_pass
 YourActualVaultPassword
 ```
