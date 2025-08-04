@@ -10,6 +10,7 @@
 
 - [What This Does](#-what-this-does)
 - [Key Features](#-key-features)
+- [Requirements](#-requirements)
 - [Architecture](#️-architecture)
 - [Process Flow](#-process-flow)
 - [Quick Start](#-quick-start)
@@ -18,14 +19,8 @@
   - [Configure Repository](#3-configure-repository)
   - [Run the Playbook](#4-run-the-playbook)
 - [Repository Structure](#-repository-structure)
-- [Configuration Options](#️-configuration-options)
-- [Security Features](#-security-features)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [Requirements](#-requirements)
-- [Documentation](#-documentation)
 - [License](#-license)
-- [Acknowledgments](#-acknowledgments)
 
 ## 🎯 What This Does
 
