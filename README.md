@@ -140,11 +140,24 @@ flowchart TD
 **On CentOS Control Node:**
 ```bash
 # Install required packages
-pip3 install azure-keyvault-secrets azure-identity pywinrm
+pip3 install azure-cli pywinrm
 
 # Install Ansible collections
-ansible-galaxy collection install azure.azcollection
 ansible-galaxy collection install ansible.windows
+
+# Install Azure CLI (CentOS/RHEL)
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+echo -e "[azure-cli]
+name=Azure CLI
+baseurl=https://packages.microsoft.com/yumrepos/azure-cli
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/azure-cli.repo
+sudo yum install -y azure-cli
+
+# Verify installations
+ansible --version
+az --version
 ```
 
 **On Windows Target Servers:**
@@ -159,8 +172,26 @@ winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
 ### 2. Setup Azure
 
 - Create an App Registration in Azure AD
-- Grant Key Vault access permissions
-- Note: Client ID, Client Secret, Tenant ID, Subscription ID, and Resource Group
+- Grant **subscription-level access** and Key Vault access permissions
+- **Required Permissions:**
+  - **Subscription level**: `Reader` role
+  - **Key Vault level**: `Key Vault Secrets User` role
+- Note: Client ID, Client Secret, Tenant ID, and Subscription ID
+
+**Grant permissions using Azure CLI:**
+```bash
+# Assign Reader role at subscription level
+az role assignment create \
+    --assignee "your-client-id" \
+    --role "Reader" \
+    --scope "/subscriptions/your-subscription-id"
+
+# Assign Key Vault access
+az role assignment create \
+    --assignee "your-client-id" \
+    --role "Key Vault Secrets User" \
+    --scope "/subscriptions/your-subscription-id/resourceGroups/your-rg/providers/Microsoft.KeyVault/vaults/your-keyvault"
+```
 
 ### 3. Configure Repository
 
@@ -197,39 +228,52 @@ restart_timeout: 600
 temp_cert_path: "C:\\temp\\certificate.pfx"
 ```
 
-### 4. Run the Playbook
+### 6. Run the Playbook
 
 ```bash
 # Test connectivity first
-ansible windows_servers -i inventory.ini -m win_ping
+ansible windows_servers -i inventory.ini -m win_ping --vault-password-file .vault_pass
 
-# Deploy certificates
-ansible-playbook -i inventory.ini deploy-certificate.yml
+# Deploy certificates using password file
+ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass
+
+# Or use interactive password prompt
+ansible-playbook -i inventory.ini deploy-certificate.yml --ask-vault-pass
 ```
 
-**You'll be prompted for:**
-- Azure Client ID
-- Azure Client Secret (hidden)
-- Azure Tenant ID
-- Azure Subscription ID
-- Certificate Password (hidden)
+**Override restart behavior:**
+```bash
+# Enable restart for this deployment only
+ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -e "restart_after_install=true"
+
+# Use different certificate
+ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -e "certificate_name=prod-cert"
+```
+
+## 📁 Repository Structure
 
 ## 📁 Repository Structure
 
 ```
 ansible-certificate-deployment/
-├── README.md                      # This file
-├── LICENSE                        # MIT License
-├── deploy-certificate.yml         # Main playbook
-├── inventory.ini                  # Server inventory (create this)
+├── README.md                           # This file
+├── LICENSE                             # MIT License
+├── deploy-certificate.yml              # Main playbook
+├── inventory.ini                       # Server inventory (no credentials)
+├── .vault_pass                         # Vault password file (gitignored)
+├── .gitignore                          # Excludes sensitive files
 ├── group_vars/
-│   └── windows_servers.yml       # Group variables (create this)
+│   └── windows_servers/
+│       ├── main.yml                    # Main configuration (references vault vars)
+│       ├── vault_windows.yml           # Windows credentials (encrypted)
+│       ├── vault_azure.yml             # Azure credentials (encrypted)
+│       └── vault_certificates.yml      # Certificate passwords (encrypted)
 ├── docs/
-│   ├── troubleshooting.md        # Common issues and solutions
-│   └── security-considerations.md # Security best practices
+│   ├── troubleshooting.md             # Common issues and solutions
+│   └── security-considerations.md      # Security best practices
 └── examples/
-    ├── inventory.ini.example     # Example inventory file
-    └── group_vars.yml.example    # Example group variables
+    ├── inventory.ini.example          # Example inventory file
+    └── group_vars.yml.example         # Example group variables
 ```
 
 ## ⚙️ Configuration Options
@@ -246,11 +290,46 @@ ansible-certificate-deployment/
 ### Common Variables
 
 ```yaml
-# group_vars/windows_servers.yml
+## ⚙️ Configuration Options
+
+### Vault Management
+
+**View encrypted vault contents:**
+```bash
+ansible-vault view group_vars/windows_servers/vault_windows.yml --vault-password-file .vault_pass
+```
+
+**Edit encrypted vault files:**
+```bash
+ansible-vault edit group_vars/windows_servers/vault_azure.yml --vault-password-file .vault_pass
+```
+
+**Encrypt existing plain text files:**
+```bash
+ansible-vault encrypt group_vars/windows_servers/plain_file.yml
+```
+
+**Change vault password:**
+```bash
+ansible-vault rekey group_vars/windows_servers/vault_*.yml
+```
+
+### Certificate Store Locations
+
+| Store Name | Description | Location |
+|------------|-------------|----------|
+| `My` | Personal certificates | Current User or Local Machine |
+| `Root` | Trusted Root CAs | Local Machine |
+| `CA` | Intermediate CAs | Local Machine |
+| `Trust` | Enterprise Trust | Local Machine |
+
+### Configuration Variables
+
+**Main configuration variables (non-sensitive):**
+```yaml
+# group_vars/windows_servers/main.yml
 key_vault_name: "prod-certificates"           # Your Key Vault name
 certificate_name: "wildcard-ssl-cert"         # Certificate name in Key Vault
-azure_resource_group: "rg-certificates"       # Resource group containing Key Vault
-azure_subscription_id: "12345678-1234-1234-1234-123456789012"  # Azure subscription ID
 cert_store_name: "My"                         # Certificate store
 cert_store_location: "LocalMachine"           # Store location
 restart_after_install: false                  # Restart after installation
@@ -258,39 +337,92 @@ restart_timeout: 600                          # Restart timeout in seconds
 temp_cert_path: "C:\\temp\\certificate.pfx"   # Temporary file path
 ```
 
+**Vaulted credentials (encrypted):**
+- `vault_windows_user` and `vault_windows_password` (Windows authentication)
+- `vault_azure_client_id`, `vault_azure_secret`, `vault_azure_tenant`, `vault_azure_subscription` (Azure authentication)
+- `vault_certificate_password` (Certificate decryption)
+```
+
 ## 🔒 Security Features
 
-- **No credential storage**: All sensitive data prompted at runtime
-- **Hidden input**: Passwords and secrets not displayed
-- **No logging**: `no_log: true` prevents sensitive data in logs
+- **Encrypted credentials**: All sensitive data stored in Ansible Vault files
+- **No plain text secrets**: Zero credentials visible in repository files
+- **Secure transfer**: WinRM handles encrypted data transfer
 - **Temporary files**: Automatic cleanup after installation
-- **Encrypted transport**: WinRM over HTTPS (recommended)
+- **Group-level management**: Consistent configuration across all servers
+- **Azure CLI integration**: Uses Microsoft's recommended authentication method
+- **Git-safe**: Repository can be safely committed with encrypted vault files
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
+**Vault Decryption Failed:**
+```bash
+# Check if vault password is correct
+ansible-vault view group_vars/windows_servers/vault_windows.yml --vault-password-file .vault_pass
+
+# If password is wrong, update .vault_pass file
+echo "CorrectVaultPassword" > .vault_pass
+chmod 600 .vault_pass
+```
+
 **WinRM Connection Failed:**
 ```bash
-# Check WinRM configuration
+# Check WinRM configuration on Windows server
 winrm get winrm/config/service
+
+# Verify firewall allows WinRM traffic
+netsh advfirewall firewall show rule name="Windows Remote Management (HTTP-In)"
+
+# Test connectivity from control node
+ansible windows_servers -i inventory.ini -m win_ping --vault-password-file .vault_pass
 ```
 
 **Azure Authentication Failed:**
-- Verify App Registration permissions
-- Check Client ID, Secret, and Tenant ID
-- Ensure Key Vault access policies are set
+- Verify App Registration has proper permissions:
+  - **Subscription**: Reader role
+  - **Key Vault**: Key Vault Secrets User role
+- Check Client ID, Secret, Tenant ID, and Subscription ID in vault files
+- Test Azure CLI login manually:
+```bash
+# Decrypt and view Azure credentials
+ansible-vault view group_vars/windows_servers/vault_azure.yml --vault-password-file .vault_pass
+
+# Test login manually
+az login --service-principal -u CLIENT_ID -p CLIENT_SECRET --tenant TENANT_ID
+```
+
+**"No subscriptions found" Error:**
+- Service Principal needs Reader role at subscription level
+- Grant access via Azure Portal → Subscriptions → Access control (IAM)
 
 **Certificate Installation Failed:**
-- Verify PFX password
-- Check certificate format
-- Ensure sufficient permissions
+- Verify PFX password is correct in vault_certificates.yml
+- Check certificate format and validity
+- Ensure Windows user has sufficient permissions
+- Check certificate store permissions
+
+**Variables Not Loading:**
+```bash
+# Check if vault files are properly referenced
+ansible-inventory -i inventory.ini --list --vault-password-file .vault_pass
+
+# Verify main.yml references vault variables correctly
+ansible-vault view group_vars/windows_servers/main.yml --vault-password-file .vault_pass
+```
 
 ### Debug Mode
 
 ```bash
-# Run with verbose output
-ansible-playbook -i inventory.ini deploy-certificate.yml -vvv
+# Run with verbose output to troubleshoot issues
+ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -v
+
+# Even more verbose for detailed debugging
+ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .vault_pass -vvv
+
+# Check variable loading
+ansible-inventory -i inventory.ini --list --vault-password-file .vault_pass
 ```
 
 ## 🤝 Contributing
@@ -306,25 +438,28 @@ ansible-playbook -i inventory.ini deploy-certificate.yml -vvv
 ### Control Node (CentOS)
 - Ansible 2.9+
 - Python 3.6+
-- Azure SDK for Python
-- pywinrm
+- Azure CLI 2.0+
+- pywinrm package
 
 ### Target Servers (Windows)
 - Windows Server 2012+
-- WinRM enabled
+- WinRM enabled and configured
 - PowerShell 3.0+
-- Network connectivity to control node
+- Network connectivity to control node on port 5985 (HTTP) or 5986 (HTTPS)
 
 ### Azure
-- Azure Key Vault with certificates
-- App Registration with Key Vault permissions
+- Azure Key Vault with certificates stored as secrets
+- App Registration with proper role assignments:
+  - **Subscription level**: Reader role
+  - **Key Vault level**: Key Vault Secrets User role
 - Valid Azure subscription
 
 ## 📖 Documentation
 
-- [Security Considerations](docs/security-considerations.md)
 - [Troubleshooting Guide](docs/troubleshooting.md)
-- [Advanced Configuration](docs/advanced-configuration.md)
+- [Security Considerations](docs/security-considerations.md)
+- [WinRM Configuration Guide](docs/winrm-setup.md)
+- [Azure Service Principal Setup](docs/azure-setup.md)
 
 ## 📄 License
 
