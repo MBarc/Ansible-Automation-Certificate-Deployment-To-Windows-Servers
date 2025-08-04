@@ -43,6 +43,27 @@
 - **Interactive**: Secure credential prompts with hidden input
 - **Idempotent**: Safe to run multiple times
 
+## 📋 Requirements
+
+### Control Node (CentOS or some other Linux distro running Ansible)
+- Ansible 2.9+
+- Python 3.6+
+- Azure CLI 2.0+
+- pywinrm package
+
+### Target Servers (Windows)
+- Windows Server 2012+
+- WinRM enabled and configured
+- PowerShell 3.0+
+- Network connectivity to control node on port 5985 (HTTP) or 5986 (HTTPS)
+
+### Azure
+- Azure Key Vault with certificates stored as secrets
+- App Registration with proper role assignments:
+  - **Subscription level**: Reader role
+  - **Key Vault level**: Key Vault Secrets User role
+- Valid Azure subscription
+
 ## 🏗️ Architecture
 
 - **Control Node**: CentOS server running Ansible
@@ -337,16 +358,6 @@ certificate-deployment-windows/
        └── vault_certificates.yml      # Certificate passwords (encrypted)
 ```
 
-## 🔒 Security Features
-
-- **Encrypted credentials**: All sensitive data stored in Ansible Vault files
-- **No plain text secrets**: Zero credentials visible in repository files
-- **Secure transfer**: WinRM handles encrypted data transfer
-- **Temporary files**: Automatic cleanup after installation
-- **Group-level management**: Consistent configuration across all servers
-- **Azure CLI integration**: Uses Microsoft's recommended authentication method
-- **Git-safe**: Repository can be safely committed with encrypted vault files
-
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -419,42 +430,9 @@ ansible-playbook -i inventory.ini deploy-certificate.yml --vault-password-file .
 ansible-inventory -i inventory.ini --list --vault-password-file .vault_pass
 ```
 
-## 📋 Requirements
-
-### Control Node (CentOS)
-- Ansible 2.9+
-- Python 3.6+
-- Azure CLI 2.0+
-- pywinrm package
-
-### Target Servers (Windows)
-- Windows Server 2012+
-- WinRM enabled and configured
-- PowerShell 3.0+
-- Network connectivity to control node on port 5985 (HTTP) or 5986 (HTTPS)
-
-### Azure
-- Azure Key Vault with certificates stored as secrets
-- App Registration with proper role assignments:
-  - **Subscription level**: Reader role
-  - **Key Vault level**: Key Vault Secrets User role
-- Valid Azure subscription
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Ansible community for excellent Windows modules
-- Azure team for Key Vault integration
-- Contributors and users of this project
-
-## 📧 Support
-
-- Create an [Issue](../../issues) for bug reports
-- Start a [Discussion](../../discussions) for questions
-- Check [existing issues](../../issues?q=is%3Aissue) before creating new ones
 
 ---
 
